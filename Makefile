@@ -16,4 +16,5 @@ $(BUILD)/$(EXECUTABLE): $(SRC)/main.cpp
 	$(CXX) -L$(LIBS) -I$(INCLUDES) $^ -o $@ $(CXXFLAGS)
 
 run:
+	make all
 	build/$(EXECUTABLE)
