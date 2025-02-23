@@ -15,8 +15,5 @@ all: $(BUILD)/$(EXECUTABLE)
 $(BUILD)/$(EXECUTABLE): $(SRC)/main.cpp
 	$(CXX) -L$(LIBS) -I$(INCLUDES) $^ -o $@ $(CXXFLAGS)
 
-$(OBJ)/%.o: $(INCLUDES)/%.c
-	$(CXX) -c $< -o $@
-
 run:
 	build/$(EXECUTABLE)
