@@ -9,6 +9,8 @@
 #define FLIP_VERTICAL 64
 #define FLIP_HORIZONTAL 128
 
+// Note: in the orignal nes, the program has to wait for interupts to render
+// but since we control the cycles, we can assum the PPU is always available to be over written
 
 class PPU {
     public:
@@ -35,7 +37,6 @@ class PPU {
 
     // nametable format: Each byte points to a location in tiles_l (update in future to allow both)
 
-
     void setup_sdl(){
         SDL_Init(SDL_INIT_VIDEO);
         char s[] = {'P', 'P', 'U', '_', 'O', 'U', 'T','_',  ppu_counter++, '\0'};
@@ -59,7 +60,7 @@ class PPU {
         }
     }
 
-    void output_tile_sprite(byte chr_rom[], byte pallet[], int tile_n, int upper_right_x, int upper_right_y, bool horizontal_fliped, bool vertical_flip){
+    void output_tile_sprite(byte chr_rom[], byte pallet[], byte tile_n, int upper_right_x, int upper_right_y, bool horizontal_fliped, bool vertical_flip){
         int base = tile_n * 16;
         for (int y = 0; y < 8; y++)
         {
@@ -78,7 +79,8 @@ class PPU {
         }
     }
 
-    void output_tile_background(byte chr_rom[], byte pallet[], int tile_n, int upper_right_x, int upper_right_y){
+    void output_tile_background(byte chr_rom[], byte pallet[], byte tile_n, int upper_right_x, int upper_right_y){
+        //printf("%02x ", tile_n);
         int base = tile_n * 16;
         for (int y = 0; y < 8; y++)
         {
@@ -97,18 +99,16 @@ class PPU {
         }
     }
 
-    void output_name_table_1(){
+    void output_tiles(){
         int t = 0;
         for(int y = 0; y < HEIGHT; y+=8)
         {
             for (int x = 0; x < WIDTH; x+=8)
             {
                 if (t > 960) return ;
-                output_tile_background(tiles_l, 0, nametable1[t],x, y);
-                printf("%02x ", nametable1[t]);
+                output_tile_background(tiles_l, pallets_b, t, x, y);
                 t++;
             }
-            printf("\n");
         }
         
     }
@@ -153,17 +153,15 @@ class PPU {
             {
                 if (t > 960) return ;
                 nametable_adjuster(t, x, y);
-                //printf("%02x ", nametable_adjuster(t));
                 t++;
             }
             if(x_mod) nametable_edge(t, y);
-            //printf("\n");
         }
         
     }
 
     void output_sprites(){
-        for(int i = 0; i < 12; i+=4){
+        for(int i = 0; i < 256; i+=4){
             byte y = OAM[i];
             if (y == 0) continue;
             byte x = OAM[i+3];
@@ -173,7 +171,6 @@ class PPU {
             byte flip_horizontally = (OAM[i+2] & FLIP_HORIZONTAL ? 1 : 0);
             output_tile_sprite(tiles_l, &pallets_b[4*pallet], tile, x, y, flip_horizontally, flip_vertically);
             //attributes: B[0:1] select one of the foreground pallets,  B[6] flip vertically, B[7] flip horizontally
-
         }
     }
 
@@ -181,7 +178,6 @@ class PPU {
         output_background();
         output_sprites();
     }
-
 };
 
 #endif
