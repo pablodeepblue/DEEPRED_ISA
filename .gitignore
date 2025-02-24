@@ -1,6 +1,6 @@
-!./SDL3.dll
+!SDL3.dll
 
-./extra/*
+extra/*
 # Prerequisites
 *.d
 
