@@ -71,11 +71,9 @@ class PPU {
                 int x_out = vertical_flip ? upper_right_x + x : upper_right_x + (7-x);
                 byte u = (upper & (0b1 << x) ?  0b10 : 0b00);
                 byte l = (lower & (0b1 << x) ?  0b01 : 0b00);
-                render_point(u + l, pallet, x_out, y_out, true);
-                
-                //printf("%X", (((upper >> x) & 1) << 1) + (lower >> x) & 1);
+                // 0 1 2 3
+                render_point(u + l, pallet, x_out, y_out, true);   
             }
-            //printf("\n");
         }
     }
 
