@@ -3,7 +3,6 @@
 #include "isadefines.h"
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <SDL3/SDL.h>
 
 #define FLIP_VERTICAL 64
