@@ -12,9 +12,13 @@ OBJ := obj
 
 all: $(BUILD)/$(EXECUTABLE)
 
-$(BUILD)/$(EXECUTABLE): $(SRC)/main.cpp
+$(BUILD)/$(EXECUTABLE): $(SRC)/$(EXECUTABLE).cpp
 	$(CXX) -L$(LIBS) -I$(INCLUDES) $^ -o $@ $(CXXFLAGS)
 
-run:
-	make all
-	build/$(EXECUTABLE)
+run: $(BUILD)/$(EXECUTABLE)
+	$(BUILD)/$(EXECUTABLE)
+
+
+memory_manager: memdrive
+memdrive : $(SRC)/memdrive.cpp
+	$(CXX) -L$(LIBS) -I$(INCLUDES) $^ -o $@   $(CXXFLAGS)

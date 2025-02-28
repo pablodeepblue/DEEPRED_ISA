@@ -13,15 +13,15 @@
 
 class PPU {
     public:
-    byte OAM[256]; // 64 sprites, 4 bytes each (y-position tile attributes x-position)
-    byte pallets_b[16]; // 4 background (nametable) pallets 4 bytes each (color 1, color 2, color 3, color 4)
-    byte pallets_f[16]; // 4 foreground (OAM) pallets 4 bytes each (color 1, color 2, color 3, color 4)
-    byte nametable1[960]; // 32 x 30 tile lables, 1 bytes each
-    byte atributestable1[64]; // pallets for each tile, 2 bits each
-    byte nametable2[960]; // 32 x 30 tile lables, 1 bytes each
-    byte atributestable2[64]; // pallets for each tile, 2 bits each
-    byte tiles_l[4096]; // 16x16 8x8 tiles, 16 bytes each
-    byte tiles_r[4096]; // 16x16 8x8 tiles, 16 bytes each
+    byte OAM[256] = { 0 };  // 64 sprites, 4 bytes each (y-position tile attributes x-position)
+    byte pallets_b[16] = { 0 };  // 4 background (nametable) pallets 4 bytes each (color 1, color 2, color 3, color 4)
+    byte pallets_f[16] = { 0 };  // 4 foreground (OAM) pallets 4 bytes each (color 1, color 2, color 3, color 4)
+    byte nametable1[960] = { 0 };  // 32 x 30 tile lables, 1 bytes each
+    byte atributestable1[64] = { 0 };  // pallets for each tile, 2 bits each
+    byte nametable2[960] = { 0 };  // 32 x 30 tile lables, 1 bytes each
+    byte atributestable2[64] = { 0 };  // pallets for each tile, 2 bits each
+    byte tiles_l[4096] = { 0 };  // 16x16 8x8 tiles, 16 bytes each
+    byte tiles_r[4096] = { 0 };  // 16x16 8x8 tiles, 16 bytes each
     SDL_Window* window;
     SDL_Renderer* renderer;
     bool H = 0;
@@ -39,16 +39,18 @@ class PPU {
     void setup_sdl(){
         SDL_Init(SDL_INIT_VIDEO);
         char s[] = {'P', 'P', 'U', '_', 'O', 'U', 'T','_',  ppu_counter++, '\0'};
-        SDL_CreateWindowAndRenderer(s, WIDTH * SCALE, HEIGHT*SCALE, 0, &window, &renderer);
+        SDL_CreateWindowAndRenderer(s, WIDTH * SCALE, HEIGHT * SCALE, 0, &window, &renderer);
         SDL_SetRenderScale(renderer, SCALE, SCALE); // 4 times larger than it should be
         SDL_SetWindowResizable(window, true);
     }
 
-    PPU(){
-        // will not reset PPU arrays except OAM, this is job of programer
-        for (int i = 0; i < 256; i++) OAM[i] = 0;
+    void reset_sdl(){
+        SDL_DestroyWindow(window);
+        SDL_DestroyRenderer(renderer);
         setup_sdl();
     }
+
+    PPU(){}
 
     void render_point(int bits, byte pallet_[], int x, int y, bool background){
         if(background | bits)

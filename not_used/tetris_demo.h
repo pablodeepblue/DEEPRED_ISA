@@ -6,6 +6,9 @@
 #include <stdio.h>
 #include <SDL3/SDL.h>
 
+byte nes_file[1000000];
+long file_size;
+
 int loadfile(const char filename[], byte array[], size_t len, int offset){
     // Open the file in binary mode
     FILE *file = fopen(filename, "rb");
@@ -51,6 +54,7 @@ int loadfile(const char filename[], byte array[], size_t len, int offset){
 
 int example_ppu_usage(){
     PPU ppu;
+    ppu.setup_sdl();
     ppu.x_scroll = 0;
     for (int i = 0; i < 960; i++) ppu.nametable2[i] = 0;
     for (int i = 0; i < 64; i++) ppu.atributestable1[i] = 0;
@@ -111,7 +115,6 @@ int valid(int16_t tetrimino[], byte r[], byte &block, byte &x, byte &y){
         if (x_offset > 9) {
             return 0;
         }
-        byte x_index = x_offset>>3;
         //printf("%u %u %u\n", x, y_offset, r[x_offset]);
         if (y_offset == r[x_offset]) {
             return 0;
@@ -140,7 +143,6 @@ void ppu_tetris_update_square(PPU &ppu, int16_t tetrimino[], byte r[], byte &blo
             i = 0;
             continue;
         }
-        byte x_index = x_offset>>3;
         //printf("%u %u %u\n", x, y_offset, r[x_offset]);
         if (y_offset == r[x_offset]) {
             y -= 1;
@@ -175,6 +177,7 @@ void ppu_tetris_update_background(PPU &ppu, int16_t tetrimino[],  byte r[], byte
 
 int ppu_tetris(){
     PPU ppu;
+    ppu.setup_sdl();
     ppu.x_scroll = 0;
     for (int i = 0; i < 960; i++) ppu.nametable2[i] = 0;
     for (int i = 0; i <  64; i++) ppu.atributestable1[i] = 0;
@@ -291,7 +294,7 @@ int ppu_tetris(){
     };
 
     byte r[10] = {20, 20, 20, 20, 20, 20, 20, 20, 20, 20,};
-    byte block = tDown;
+    byte block = valid_start[SDL_rand(7)];
     byte x = 5;
     byte y = 0;
     byte l = 0;

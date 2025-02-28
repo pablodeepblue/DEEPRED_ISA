@@ -1,6 +1,7 @@
 !SDL3.dll
 
-extra/*
+extra
+.vscode
 # Prerequisites
 *.d
 
@@ -34,3 +35,5 @@ extra/*
 *.out
 *.app
 f.txt
+/.vscode
+/.vscode
