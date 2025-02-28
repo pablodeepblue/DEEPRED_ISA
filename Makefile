@@ -1,6 +1,6 @@
 CXX = g++
 
-CXXFLAGS = -Wall -std=c++11 -lmingw32 -lSDL3
+CXXFLAGS = -Wall -std=c++17 -lmingw32 -lSDL3
 
 EXECUTABLE = main
 

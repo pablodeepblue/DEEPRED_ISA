@@ -29,6 +29,7 @@ class Memory{
         Memory(){}
 
         void cycle(){
+            printf("[Memory] Cycle\n");
             cooldown -= 1;
             if (cooldown == 0) blocked = false;
         }
