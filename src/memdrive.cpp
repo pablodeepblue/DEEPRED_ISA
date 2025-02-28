@@ -66,8 +66,6 @@ void cycle(word data){
     cycle_count += data;
     for (word i = 0; i < data; i++){
         cache1.cycle();
-        cache1.cycle();
-        cache1.write_through();
     }
         
 }
@@ -108,7 +106,6 @@ int main(){
         else if (instruction == "hlt") 
             flag = false;
         std::cin.sync();
-        cache1.cycle();
-        cycle_count+=1;
+        cycle(1);
     }  
 }
