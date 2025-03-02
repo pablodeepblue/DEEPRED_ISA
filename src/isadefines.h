@@ -76,11 +76,8 @@ byte pallet[] = {
 };
 
 int ppu_counter = 0;
-
 const int WIDTH = 256;
 const int HEIGHT = 224;
 const int SCALE = 4;
-
-#define MAXMEMORY       1000000
 
 #endif

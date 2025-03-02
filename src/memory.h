@@ -3,8 +3,21 @@
 #include "isadefines.h"
 
 #define LINE_SIZE 8
+#define MAXMEMORY 65000
 
-#define blocked_error    0xff
+#define blocked_error   0xff
+#define cache_wait      0b1000
+#define cache_fetch     0b0100
+#define cache_miss      0b0010
+#define cache_hit       0b0001
+
+#define valid_bit       0x80000000
+#define update_bit      0x40000000
+#define tag_bit_mask    0x003fffff
+
+constexpr word memorysize(){
+    return MAXMEMORY/(LINE_SIZE*4) + 1;
+}
 
 typedef struct memory_line
 {
@@ -12,15 +25,20 @@ typedef struct memory_line
     word data[LINE_SIZE];
 } memory_line;
 
+typedef struct cache_line
+{
+    byte status = cache_hit;
+    word data;
+} cache_line;
+
 class Memory{
     private:
         byte blocked = false;
         byte cooldown = 0;
-        memory_line memory_data[2000]; // 2000 * 8 * 4 = 65kb
+        memory_line memory_data[memorysize()]; // 2000 * 8 * 4 = 65kb
         memory_line buffer;
-        memory_line empty;
 
-        void block(){
+        constexpr void block(){
             blocked = true;
             cooldown = 100;
         }
@@ -28,14 +46,14 @@ class Memory{
     public:
         Memory(){}
 
-        void cycle(){
-            printf("[Memory] Cycle\n");
+        constexpr void cycle(){
+            //printf("[Memory] Cycle\n");
             cooldown -= 1;
             if (cooldown == 0) blocked = false;
         }
 
         // load instructions
-        byte buffer_address(word line){
+        constexpr byte buffer_address(word line){
             if (blocked) return blocked_error;
             printf("[Memory] Loading line %u\n to buffer\n", line);
             buffer.status = 0;
@@ -44,20 +62,20 @@ class Memory{
             return 0;
         }
 
-        byte buffer_status(){
+        constexpr byte buffer_status(){
             return (!blocked);
         }
 
-        memory_line load_buffer(){
+        constexpr memory_line load_buffer(){
             if (blocked) return memory_line{};
             else return buffer;
         }
 
         //store instructions
-        byte store_byte(word line, word index, word offset, byte data){
+        constexpr byte store_byte(word line, word index, word offset, byte data){
             if (blocked) return blocked_error;
-            printf("[Memory] storing byte line %u index %u offset %u data %u\n", line, index, offset, data);
-            byte byte_pos = (3 - offset) << 3;
+            //printf("[Memory] storing byte line %u index %u offset %u data %u\n", line, index, offset, data);
+            word byte_pos = (3 - offset) << 3;
             word mask = 0xFF << byte_pos;
             memory_data[line].data[index] &= ~mask;
             memory_data[line].data[index] |= data << byte_pos;
@@ -65,7 +83,7 @@ class Memory{
             return 0;
         }
         
-        byte store_word(word line, word index, word data){
+        constexpr byte store_word(word line, word index, word data){
             if (blocked) return blocked_error;
             printf("[Memory] storing word line %u index %u data %u\n", line, index, data);
             memory_data[line].data[index] = data;
@@ -78,15 +96,15 @@ class Bus {
     private:
         Memory ram;
 
-        word address_to_line(word address){
+        constexpr word address_to_line(word address){
             return address >> 5;
         }
         
-        word address_to_index(word address){
+        constexpr word address_to_index(word address){
             return (address >> 2) & 0b111;
         }
 
-        word address_to_offset(word address){
+        constexpr word address_to_offset(word address){
             return address & 0b11;
         }
     
@@ -96,49 +114,34 @@ class Bus {
         void sdl_startup(){ }
         
         // cycle
-        void cycle(){
+        constexpr void cycle(){
             ram.cycle();
         }
         
         // load
-        byte buffer_address(word address){
+        constexpr byte buffer_address(word address){
             return ram.buffer_address(address_to_line(address));
         }
 
-        byte buffer_status(){
+        constexpr byte buffer_status(){
             return ram.buffer_status();
         }
 
-        memory_line load_buffer(){
+        constexpr memory_line load_buffer(){
             return ram.load_buffer();
         }
 
         // store
-        byte store_byte(word address, byte data){
+        constexpr byte store_byte(word address, byte data){
             return ram.store_byte(address_to_line(address), address_to_index(address), address_to_offset(address), data);
         }
 
-        byte store_word(word address, word data){
+        constexpr byte store_word(word address, word data){
             return ram.store_word(address_to_line(address), address_to_index(address), data);
         }
 
 };
 
-
-#define cache_wait      0b1000
-#define cache_fetch     0b0100
-#define cache_miss      0b0010
-#define cache_hit       0b0001
-
-typedef struct cache_line
-{
-    byte status = cache_hit;
-    word data;
-} cache_line;
-
-#define valid_bit       ((1 << 31))
-#define update_bit      ((1 << 30)) 
-#define tag_bit_mask    ((1 << 22) - 1)
 // move bus here  
 class Cache_lv1{
     private:
@@ -156,44 +159,44 @@ class Cache_lv1{
         cache_line buffer;
         Bus bus;
 
-        void block(){
+        constexpr void block(){
             blocked = true;
             cooldown = 1;
         }
 
-        void unblock(){
+        constexpr void unblock(){
             blocked = false;
             cooldown = 0;
         }
 
-        void write_word(byte index, word tag, word data){
+        constexpr void overwrite_word(byte index, word tag, word data){
             cache_memory[index + replace] = data;
             cache_tags[index + replace] = tag | valid_bit | update_bit;
-            replace = (replace + 1) % 4;
+            replace = (replace + 1) % 4u;
         }
 
-        void write_byte(byte index, byte offset, word tag, byte data){
-            byte byte_pos = (3 - offset) << 3;
+        constexpr void overwrite_byte(byte index, byte offset, word tag, byte data){
+            word byte_pos = (3 - offset) << 3;
             word mask = 0xFF << byte_pos;
             cache_memory[index + replace] &= ~mask;
             cache_memory[index + replace] |= data << byte_pos;
             cache_tags[index + replace] = tag | valid_bit | update_bit;
-            replace = (replace + 1) % 4;
+            replace = (replace + 1) % 4u;
         }
 
-        word address_to_tag(word address){
+        constexpr word address_to_tag(word address){
             return address >> 6;
         }
 
-        byte address_to_index(word address){
+        constexpr byte address_to_index(word address){
             return ((address >> 2) & 0b1111) << 2;
         }
 
-        byte address_to_offset(word address){
+        constexpr byte address_to_offset(word address){
             return address & 0b11;
         }
 
-        word data_to_address(word tag, byte index, byte offset){
+        constexpr word data_to_address(word tag, byte index, byte offset){
             return (tag << 6) | index | offset;
         }
 
@@ -203,8 +206,8 @@ class Cache_lv1{
                 cache_tags[i] = 0;
         };
 
-        void cycle(){
-            printf("[Cache] Cycling\n");
+        constexpr void cycle(){
+            //printf("[Cache] Cycling\n");
             cooldown -= 1;
             if (cooldown == 0) blocked = false;
             write_through();
@@ -217,7 +220,7 @@ class Cache_lv1{
                 byte index = address_to_index(buffer_addr_load);
                 word data = bus.load_buffer().data[(buffer_addr_load >> 2) & 0b111];
                 if (byte_mode){
-                    byte byte_pos = (3 - byte_offset) << 3;
+                    word byte_pos = (3 - byte_offset) << 3;
                     word mask = 0xFF << byte_pos;
                     data &= ~mask;
                     data |= byte_data << byte_pos;
@@ -226,13 +229,13 @@ class Cache_lv1{
                     buffer.data = data;
                 }
                 buffer.status = cache_hit;
-                write_word(index, tag, data);
+                overwrite_word(index, tag, data);
                 unblock();
             }
             bus.cycle();
         }
 
-        byte check_for_tag(word address){
+        constexpr byte check_for_tag(word address){
             word tag = address_to_tag(address);
             byte index = address_to_index(address);
             for (int i = 0; i < 4; i++) 
@@ -241,9 +244,9 @@ class Cache_lv1{
         }
 
         // load instructions
-        byte buffer_address(word address){
+        constexpr byte buffer_address(word address){
             if (blocked) return blocked_error;
-            printf("[Cache] Buffering 0x%X\n", address);
+            //printf("[Cache] Buffering 0x%X\n", address);
             word tag = address_to_tag(address);
             byte index = address_to_index(address);
             for (int i = 0; i < 4; i++) 
@@ -260,19 +263,19 @@ class Cache_lv1{
             return cache_miss;
         }
 
-        byte buffer_status(){
+        constexpr byte buffer_status(){
             return (!blocked);
         }
 
-        cache_line load_buffer(){
+        constexpr cache_line load_buffer(){
             if (blocked) return cache_line{};
             else return buffer;
         }
 
         // store
-        byte store_word(word address, word data){
+        constexpr byte store_word(word address, word data){
             if (blocked) return blocked_error;
-            printf("[Cache] Storing %u (word) at 0x%X\n", data, (address >> 2) << 2);
+            //printf("[Cache] Storing %u (word) at 0x%X\n", data, (address >> 2) << 2);
             word tag = address_to_tag(address);
             byte index = address_to_index(address);
             for(int i = 0; i < 4; i++)
@@ -291,13 +294,13 @@ class Cache_lv1{
             else{
                 block();
             }
-            write_word(index + replace, tag, data);
+            overwrite_word(index + replace, tag, data);
             return cache_miss;
         }
 
-        byte store_byte(word address, byte data){
+        constexpr byte store_byte(word address, byte data){
             if (blocked) return blocked_error;
-            printf("[Cache] Storing %u (byte) at 0x%X\n", data, address);
+            // printf("[Cache] Storing %u (byte) at 0x%X\n", data, address);
             if (check_for_tag(address) == cache_miss){
                 byte_offset = address_to_offset(address);
                 byte_data = data;
@@ -308,7 +311,7 @@ class Cache_lv1{
                 word index = address_to_index(address);
                 word tag = address_to_tag(address);
                 for(int i = 0; i < 4; i++) if ((cache_tags[index + i] & tag_bit_mask) == tag ){
-                    byte byte_pos = (3 - address_to_offset(address)) << 3;
+                    word byte_pos = (3 - address_to_offset(address)) << 3;
                     word mask = 0xFF << byte_pos;
                     cache_memory[index + i] &= ~mask;
                     cache_memory[index + i] |= data << byte_pos;
@@ -318,8 +321,7 @@ class Cache_lv1{
             }
         }
 
-        void write_through(){
-            printf("[Cache] Attempting writethrough\n");
+        constexpr void write_through(){
             if (buffer.status == cache_miss) {
                 if (bus.store_word(buffer_addr_store, buffer.data) != blocked_error){
                     buffer.status = cache_hit;
@@ -330,7 +332,7 @@ class Cache_lv1{
                 blocked = true;
                 cooldown = 100;
             }
-            else for (int i = 0; i < 32; i++)
+            else for (byte i = 0; i < 32; i++)
                 if((cache_tags[i] & valid_bit) && (cache_tags[i] & update_bit)){
                     word addr = data_to_address(cache_tags[i], i, 0);
                     if (bus.store_word(addr, cache_memory[i]) != blocked_error) cache_tags[i] ^= update_bit;

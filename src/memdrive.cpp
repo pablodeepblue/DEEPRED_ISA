@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <string.h>
 #include <cctype>
 #include <type_traits>
 
@@ -121,12 +122,15 @@ void cache_mode(T &sim){
 }
 
 int main(int argc, char* argv[]){
-    if (argc > 1){
+    if (argc > 1 && 0 == strcmp(argv[1], "cache")){
+        printf("Cache mode\n");
         Simulator <Cache_lv1> sim;
         cache_mode(sim);
     }
     else{
+        printf("Mem mode\n");
         Simulator <Bus> sim;
         cache_mode(sim);
     }
+    return 0;
 }

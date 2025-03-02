@@ -1,6 +1,6 @@
 CXX = g++
 
-CXXFLAGS = -Wall -std=c++17 -lmingw32 -lSDL3
+CXXFLAGS = -Wall -Wextra -Wshadow -std=c++17
 
 EXECUTABLE = main
 
@@ -21,4 +21,4 @@ run: $(BUILD)/$(EXECUTABLE)
 
 memory_manager: memdrive
 memdrive : $(SRC)/memdrive.cpp
-	$(CXX) -L$(LIBS) -I$(INCLUDES) $^ -o $@   $(CXXFLAGS)
+	$(CXX) -L$(LIBS) -I$(INCLUDES) $^ -o $@  $(CXXFLAGS)
