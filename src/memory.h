@@ -21,6 +21,15 @@ typedef struct memory_line {
     word data[LINE_SIZE];
 } memory_line;
 
+typedef struct cache_line
+{
+    bool valid = 0;
+    bool update = 0;
+    word tag = 0;
+    word data[LINE_SIZE];
+} cache_line;
+
+
 class Memory{
     private:
         byte blocked = false;
@@ -78,6 +87,14 @@ class Memory{
             block();
             return 0;
         }
+
+        byte store_line(word line, cache_line data){
+            if (blocked) return blocked_error;
+            printf("[Memory] storing line %u\n", line);
+            for (int i = 0; i < LINE_SIZE; i++) 
+                memory_data[line].data[i] = data.data[i];
+            return 0;
+        }
 };
 
 class Bus {
@@ -128,15 +145,11 @@ class Bus {
             return ram.store_word(address_to_line(address), address_to_index(address), data);
         }
 
-};
+        byte store_line(word address, cache_line data){
+            return ram.store_line(address_to_line(address), data);
+        }
 
-typedef struct cache_line
-{
-    bool valid = 0;
-    bool update = 0;
-    word tag = 0;
-    word data[LINE_SIZE];
-} cache_line;
+};
 
 // move bus here  
 class Cache_lv1{
@@ -152,6 +165,8 @@ class Cache_lv1{
         word store_data;
         bool byte_mode;
         bool store;
+
+        cache_line buffer_miss;
 
         void block(){
             blocked = true;
@@ -208,12 +223,12 @@ class Cache_lv1{
             store_data = data;
         }
 
-        inline void from_cache_to_mem(cache_line &from, memory_line &to){
-            for (int i = 0; i < LINE_SIZE; i++) to.data[i] = from.data[i];
-        }
-
         constexpr word data_to_address(word tag, byte index, byte offset_word, byte offset_byte){
             return (tag << 9) | (index << 5) | (offset_word << 2) | offset_byte;
+        }
+
+        inline void from_cache_to_mem(cache_line &from, memory_line &to){
+            for (int i = 0; i < LINE_SIZE; i++) to.data[i] = from.data[i];
         }
 
         void write_word(word tag, byte index, byte offset_word, word data){
@@ -252,9 +267,19 @@ class Cache_lv1{
                 cooldown = 255;
             }
             else if (status == cache_wait && bus.buffer_status()) {
+                status = cache_hit;
+                unblock();
                 word tag = address_to_tag(buffer_addr_load);
                 byte index = address_to_index(buffer_addr_load);
                 memory_line data = bus.load_buffer();
+                //buffer_miss
+                if (cache_memory[index].valid && cache_memory[index].update){
+                    buffer_miss.tag = tag;
+                    for (int i = 0; i < LINE_SIZE; i++)
+                        buffer_miss.data[i] = cache_memory[index].data[i];
+                    status = cache_miss;
+                    cooldown = 255;
+                }
                 cache_memory[index].tag = tag;
                 cache_memory[index].valid = 1;
                 for (int i = 0; i < LINE_SIZE; i++)
@@ -272,9 +297,8 @@ class Cache_lv1{
                 else{
                     from_cache_to_mem(cache_memory[index], buffer);
                 }
-                status = cache_hit;
-                unblock();
             }
+            write_through();
             //flush();
         }
         
@@ -317,7 +341,7 @@ class Cache_lv1{
             set_store_byte(address, data);
             return cache_miss;
         }
-
+        
         byte store_word(word address, word data){
             if (blocked) return blocked_error;
             word tag = address_to_tag(address);
@@ -331,6 +355,29 @@ class Cache_lv1{
             }
             set_store_word(address, data);
             return cache_miss;
+        }
+
+        constexpr void write_through(){
+            if (status == cache_miss) {
+                word address = data_to_address(buffer_miss.tag, 0, 0, 0);
+                if (bus.store_line(address, buffer_miss) != blocked_error){
+                    status = cache_hit;
+                    blocked = false;
+                    cooldown = 0;
+                    return;
+                }
+                blocked = true;
+                cooldown = 100;
+                return;
+            }
+            for (int i = 0; i < LINE_SIZE; i++){
+                if (cache_memory[i].valid && cache_memory[i].update){
+                    cache_memory[i].update = 0;
+                    word address = data_to_address(cache_memory[i].tag, 0, 0, 0);
+                    bus.store_line(address, cache_memory[i]);
+                }
+            }
+            return;
         }
 
 };
