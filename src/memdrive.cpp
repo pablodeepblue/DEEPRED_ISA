@@ -22,39 +22,19 @@ class  Simulator{
         else return std::stoi(data, 0, 10);
     }
 
-    // change to cache
     void load(word data){
         if (cache1.buffer_address(data) == blocked_error) std::cout << "[" << data << "] not loaded to buffer : blocked" << std::endl;
         else {
             buff_index = (data >> 2) & 0b111;
-            buff_offset = 0;
-            buff_mask = 0xFFFFFFFF;
             std::cout << "["<< data << "] loading to buffer" << std::endl;
+            std::cout << "["<< buff_index << "] index" << std::endl;
         }
     }
 
-    // change to cache
-    void loadbyte(word data){
-        if (cache1.buffer_address(data) == blocked_error) std::cout << "[" << data << "] not loaded to buffer : blocked" << std::endl;
-        else {
-            buff_index = (data >> 2) & 0b111;
-            buff_offset = (3 - (data & 0b11)) << 3;
-            buff_mask = 0xFF;
-            std::cout << "["<< data << "] loading to buffer" << std::endl;
-        }
-    }
-
-    // change to cache
     void buff(){
         if (cache1.buffer_status()) {
-            if constexpr (std::is_same_v<Bus, T>){
-                memory_line a  = cache1.load_buffer();
-                std::cout << "final extracted val " << ((a.data[buff_index] >> buff_offset) & buff_mask) << std::endl;
-            }
-            else if constexpr (std::is_same_v<Cache_lv1, T>){
-                cache_line a  = cache1.load_buffer();
-                std::cout << "final extracted val " << ((a.data >> buff_offset) & buff_mask) << std::endl;
-            }   
+            memory_line a  = cache1.load_buffer();
+            std::cout << "final extracted val " << a.data[buff_index] << std::endl;
         }
         else std::cout << "Buffer not loaded yet" << std::endl;
     }
@@ -94,10 +74,6 @@ void cache_mode(T &sim){
         if (instruction == "lda") { 
             data = sim.getvalue(); 
             sim.load(data);
-        }
-        else if (instruction == "ldb") { 
-            data = sim.getvalue(); 
-            sim.loadbyte(data);
         }
         else if (instruction == "buff") { 
             sim.buff();
