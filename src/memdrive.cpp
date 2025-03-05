@@ -9,11 +9,11 @@
 template <typename T>
 class  Simulator{
     public:
-    T cache1;
+    T memory_manager;
     word buff_index;
     word buff_offset;
     word buff_mask;
-    word cycle_count =0 ;
+    word cycle_count = 0;
 
     word getvalue(){
         std::string data;
@@ -22,8 +22,9 @@ class  Simulator{
         else return std::stoi(data, 0, 10);
     }
 
-    void load(word data){
-        if (cache1.buffer_address(data) == blocked_error) std::cout << "[" << data << "] not loaded to buffer : blocked" << std::endl;
+    void load(const word data){
+        byte res = memory_manager.buffer_address(data);
+        if ( res == blocked_error) std::cout << "[" << data << "] not loaded to buffer : blocked" << std::endl;
         else {
             buff_index = (data >> 2) & 0b111;
             std::cout << "["<< data << "] loading to buffer" << std::endl;
@@ -32,36 +33,35 @@ class  Simulator{
     }
 
     void buff(){
-        if (cache1.buffer_status()) {
-            memory_line a  = cache1.load_buffer();
+        if (memory_manager.buffer_status()) {
+            memory_line a  = memory_manager.load_buffer();
             std::cout << "final extracted val " << a.data[buff_index] << std::endl;
         }
         else std::cout << "Buffer not loaded yet" << std::endl;
     }
 
-    void store(word data){
+    void store(const word data){
         word add = getvalue();
-        if (cache1.store_word(add, data) == blocked_error) std::cout << data << " store to [" << add << "] blocked" << std::endl;
+        if (memory_manager.store_word(add, data) == blocked_error) std::cout << data << " store to [" << add << "] blocked" << std::endl;
         else std::cout << data << " store to [" << add << "] buffered" << std::endl;
     }
 
-    void storebyte(word data){
+    void storebyte(const word data){
         word add = getvalue();
-        if (cache1.store_byte(add, data) == blocked_error) std::cout << data << " store to [" << add << "] blocked" << std::endl;
+        if (memory_manager.store_byte(add, data) == blocked_error) std::cout << data << " store to [" << add << "] blocked" << std::endl;
         else std::cout << data << " store to [" << add << "] buffered" << std::endl;
     }
 
-    void cycle(word data){
+    void cycle(const word data){
         cycle_count += data;
         for (word i = 0; i < data; i++){
-            cache1.cycle();
+            memory_manager.cycle();
         }
-            
     }
 };
 
 template <typename T>
-void cache_mode(T &sim){
+void cache_mode(Simulator<T> &sim){
     bool flag = true; 
     while (flag)
     {

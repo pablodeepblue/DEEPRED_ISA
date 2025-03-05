@@ -8,6 +8,10 @@
 #define word uint32_t
 #define doubleword uint64_t
 
+constexpr int WIDTH = 256;
+constexpr int HEIGHT = 224;
+constexpr int SCALE = 4;
+
 byte pallet[] = {
     124, 124, 124, 
     0, 0, 252, 
@@ -76,8 +80,6 @@ byte pallet[] = {
 };
 
 int ppu_counter = 0;
-const int WIDTH = 256;
-const int HEIGHT = 224;
-const int SCALE = 4;
+
 
 #endif

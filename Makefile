@@ -1,6 +1,6 @@
 CXX = g++
 
-CXXFLAGS = -Wall -Wextra -Wshadow -std=c++17
+CXXFLAGS = -Wall -Wextra -Wshadow -O3 -std=c++17
 
 EXECUTABLE = main
 
