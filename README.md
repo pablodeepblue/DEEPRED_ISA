@@ -2,8 +2,6 @@
 
 A 32-bit, ARM LEGv8-inspired instruction set architecture (ISA) simulator written in C++17. It was built as the final project for **CS535** by James Dolle and Pablo Ghezzi.
 
-The project is a work in progress. The memory and cache subsystem is implemented and can be tested interactively today. The CPU core, assembler, pipeline, GUI and PPU (graphics unit) are specified in the project report but are not wired up yet (see [Project status](#project-status)).
-
 ## Table of contents
 
 - [Overview](#overview)
